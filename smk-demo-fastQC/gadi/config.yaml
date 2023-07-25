@@ -1,0 +1,13 @@
+restart-times: 0
+jobname: "{name}.{jobid}.sh"
+cluster: "gadi_submit.py"
+cluster-status: "gadi_status.py"
+cluster-config: "CHANGE_ME" #FULL path to cluster.yaml
+max-jobs-per-second: 10
+max-status-checks-per-second: 10
+latency-wait: 60
+cores: 99
+local-cores: 1
+rerun-incomplete: true
+keep-going: false
+use-conda: True

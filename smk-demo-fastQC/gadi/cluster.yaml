@@ -1,0 +1,14 @@
+__default__:
+  project: CHANGE_ME
+  cwd: wd
+  V: V
+  join: oe
+  output: logs/gadi/smk.{rulename}.{jobid}.log
+  error: logs/gadi/smk.{rulename}.{jobid}.log
+
+download_data:
+  queue: copyq
+
+run_fastQC:
+  queue: normal
+  operand: --
