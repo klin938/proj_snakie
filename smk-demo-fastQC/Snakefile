@@ -1,0 +1,50 @@
+import os
+
+onstart:
+    print("##### DEMO RUNNING #####\n")
+    shell("uname -a")
+FILESNAMES=["SRR2589044_1", "SRR2589044_2"]
+
+rule all:
+  input:
+    expand("reads/{sample}.fastq.gz", sample=FILESNAMES),
+    expand("outputs/{sample}_peek.txt", sample=FILESNAMES),
+    expand("outputs/{sample}_count.txt", sample=FILESNAMES),
+    expand("outputs/{sample}_fastqc.html", sample=FILESNAMES)
+rule download_data:
+  output:
+    "reads/{sample}.fastq.gz"
+  threads: 1
+  shell:
+    "wget -O {output} ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR258/004/SRR2589044/{wildcards.sample}.fastq.gz"
+rule peek:
+  output:
+    "outputs/{sample}_peek.txt"
+  input:
+    "reads/{sample}.fastq.gz"
+  threads: 1
+  shell:
+    """
+    set +o pipefail;
+    zcat {input} | head -n 4 > {output}
+    """
+rule count_reads:
+  output:
+    "outputs/{sample}_count.txt"
+  input:
+    "reads/{sample}.fastq.gz"
+  shell:
+    "echo $(( $(zcat {input} | wc -l) / 4 ))> {output}"
+rule run_fastQC:
+  output:
+    html = "outputs/{sample}_fastqc.html",
+    zip  = "outputs/{sample}_fastqc.zip"
+  input:
+    "reads/{sample}.fastq.gz"
+  threads: 1
+  conda: "envs/fastQC.yaml"
+  shell:
+    r"""fastqc -t {threads} {input} -o .
+        mv {wildcards.sample}_fastqc.html {output.html}
+        mv {wildcards.sample}_fastqc.zip  {output.zip}
+     """
