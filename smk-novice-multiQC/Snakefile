@@ -1,0 +1,119 @@
+###
+# Snakefile you should have after completing episodes 01 to 07
+#
+# To run a full MultiQC report on all samples, use:
+#
+# $ snakemake -j1 -p multiqc
+###
+
+# Input conditions and replicates to process
+CONDITIONS = ["ref", "etoh60", "temp33"]
+REPLICATES = ["1", "2", "3"]
+
+rule summ_counts:
+  input:
+    untrimmed = expand( "outputs/{cond}_{rep}_{end}.fq.raw.count",   cond  = CONDITIONS,
+                                                               rep   = REPLICATES,
+                                                               end   = ["1", "2"] ),
+    trimmed   = expand( "outputs/{cond}_{rep}_{end}.fq.trimmed.count", cond  = CONDITIONS,
+                                                               rep   = REPLICATES,
+                                                               end   = ["1", "2"] ),
+  output:
+    untrimmed = "outputs/untrimmed_counts_concatenated.txt",
+    trimmed   = "outputs/trimmed_counts_concatenated.txt",
+  shell:
+    "cat {input.untrimmed} > {output.untrimmed} ; cat {input.trimmed} > {output.trimmed}"
+
+# Generic read counter rule using wildcards and placeholders,
+# which can count trimmed and untrimmed reads.
+rule countreads:
+  output: "outputs/{sample}.fq.{indir}.count"
+  input:  "{indir}/{sample}.fq"
+  shell:
+    "echo $(( $(wc -l <{input}) / 4 )) > {output}"
+
+# Trim any FASTQ reads for base quality
+rule trimreads:
+  output: "trimmed/{sample}.fq"
+  input:  "raw/{sample}.fq"
+  conda: "envs/fastx_tk.yaml"
+  shell:
+    "fastq_quality_trimmer -t 22 -l 100 -o {output} <{input}"
+
+# Kallisto quantification of one sample
+# Modified to declare the whole directory as the output, and to capture all output to
+# a log file.
+rule kallisto_quant:
+    output: directory("outputs/kallisto.{sample}")
+    input:
+        index = "Saccharomyces_cerevisiae.R64-1-1.kallisto_index",
+        fq1   = "trimmed/{sample}_1.fq",
+        fq2   = "trimmed/{sample}_2.fq",
+    conda: "envs/kallisto.yaml"
+    threads: 4
+    shell:
+     r"""mkdir {output}
+         kallisto quant -t {threads} -i {input.index} -o {output} {input.fq1} {input.fq2} >& {output}/kallisto_quant.log
+      """
+
+rule kallisto_index:
+    output:
+        idx = "{strain}.kallisto_index",
+        log = "{strain}.kallisto_log",
+    input:
+        fasta = "transcriptome/{strain}.cdna.all.fa.gz"
+    conda: "envs/kallisto.yaml"
+    shell:
+        "kallisto index -i {output.idx} {input.fasta} >& {output.log}"
+
+rule fastqc:
+    output:
+        html = "outputs/fastqc_{sample}.{indir}.html",
+        zip  = "outputs/fastqc_{sample}.{indir}.zip"
+    input:  "{indir}/{sample}.fq"
+    conda: "envs/fastQC.yaml"
+    threads: 4
+    shell:
+       r"""fastqc -t {threads} -o . {input}
+           mv {wildcards.sample}_fastqc.html {output.html}
+           mv {wildcards.sample}_fastqc.zip  {output.zip}
+        """
+
+rule salmon_quant:
+    output: directory("outputs/salmon.{sample}")
+    input:
+        index = "Saccharomyces_cerevisiae.R64-1-1.salmon_index/",
+        fq1   = "trimmed/{sample}_1.fq",
+        fq2   = "trimmed/{sample}_2.fq",
+    conda: "envs/salmon.yaml"
+    threads: 4
+    shell:
+        "salmon quant -p {threads} -i {input.index} -l A -1 {input.fq1} -2 {input.fq2} --validateMappings -o {output}"
+
+rule salmon_index:
+    output:
+        idx = directory("{strain}.salmon_index/")
+    input:
+        fasta = "transcriptome/{strain}.cdna.all.fa.gz"
+    conda: "envs/salmon.yaml"
+    shell:
+        "salmon index -t {input.fasta} -i {output.idx} -k 31"
+
+# A version of the MultiQC rule that ensures nothing unexpected is hoovered up by multiqc,
+# by linking the files into a temporary directory.
+# Note that this requires the *kallisto_quant* rule to be amended as above so that it has
+# a directory as the output, with that directory containing the console log.
+rule multiqc:
+    output:
+        mqc_out = directory('outputs/multiqc_out'),
+        mqc_in  = directory('outputs/multiqc_in'),
+    input:
+        salmon =   expand("outputs/salmon.{cond}_{rep}", cond=CONDITIONS, rep=REPLICATES),
+        kallisto = expand("outputs/kallisto.{cond}_{rep}", cond=CONDITIONS, rep=REPLICATES),
+        fastqc =   expand("outputs/fastqc_{cond}_{rep}_{end}.raw.zip", cond=CONDITIONS, rep=REPLICATES, end=["1","2"]),
+    conda: "envs/multiqc.yaml"
+    shell:
+      r"""mkdir {output.mqc_in}
+          ln -snr -t {output.mqc_in} {input}
+          multiqc {output.mqc_in} -o {output.mqc_out}
+       """

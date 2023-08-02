@@ -1,0 +1,6 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - salmon=1.2.1
+  - tbb=2020.2

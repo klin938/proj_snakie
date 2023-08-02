@@ -1,0 +1,33 @@
+__resources__:
+  mem_requested: 
+    - "mem_r"
+  tmp_requested:
+    - "tmp_r"
+  fast_dm:
+    - "dm"
+
+__options__:
+  jc:
+    - "jc"
+    - "jclass"
+    - "job_class"
+
+__default__:
+  mem_requested: "1024M"
+  tmp_requested: "1024M"
+  join: yes
+  output: logs/brenner/smkjob.{rulename}.{jobid}.log
+  error: logs/brenner/smkjob.{rulename}.{jobid}.log
+
+salmon_quant:
+  pe: "smp 4"
+  mem_requested: "2048M"
+  tmp_requested: "1024M"
+kallisto_quant:
+  pe: "smp 4"
+  mem_requested: "2048M"
+  tmp_requested: "1024M"
+fastqc:
+  pe: "smp 4"
+  mem_requested: "2048M"
+  tmp_requested: "1024M"
