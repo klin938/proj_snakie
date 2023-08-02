@@ -1,0 +1,18 @@
+system: "gadi"
+
+gadi:
+  command: "qsub"
+  key_mapping:
+    project: "-P {}"
+    name: "-N {}"
+    account: "-A {}"
+    queue: "-q {}"
+    threads: "-l ncpus={}"
+    mem_mb: "-l mem={}mb"
+    time_min: "-l walltime={}00"
+    join: "-j {}"
+    cwd: "-l {}"
+    V: "-V"
+    output: "-o {}"
+    error: "-e {}" 
+    operand: "{}"

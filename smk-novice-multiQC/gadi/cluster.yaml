@@ -1,0 +1,32 @@
+__default__:
+  project: CHANGE_ME
+  cwd: wd
+  V: V
+  join: oe
+  output: logs/gadi/smk.{rulename}.{jobid}.log
+  error: logs/gadi/smk.{rulename}.{jobid}.log
+
+summ_counts:
+  queue: copyq
+
+trimreads:
+  operand: --
+
+kallisto_quant:
+  operand: --
+
+kallisto_index:
+  operand: --
+
+fastqc:
+  operand: --
+
+salmon_quant:
+  operand: --
+
+salmon_index:
+  operand: --
+
+multiqc:
+  queue: normal
+  operand: --
